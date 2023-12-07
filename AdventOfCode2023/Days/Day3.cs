@@ -24,12 +24,7 @@ namespace AdventOfCode2023.Days
             int sum = 0;
             
             foreach (Match match in symbolRgx.Matches(grid))
-            {
-                Console.WriteLine($"Detected {match.Value} at index {match.Index}");
-                int x = GetSymbolSum(grid, width, match.Index);
-                sum += x;
-                Console.WriteLine($"Sum of symbols: {x}");
-            }
+                sum += GetSymbolSum(grid, width, match.Index);
 
             return sum;
         }
@@ -53,27 +48,21 @@ namespace AdventOfCode2023.Days
                 return 0;
 
             List<char> chars = [grid[index]];
-            Console.WriteLine($"Beginning number parsing with {grid[index]}");
             int activeIndex = index;
-            Console.WriteLine($"Moving left, Modulus: [{activeIndex % (width - 1)}]");
             while (activeIndex-- % width != 0)
             {
-                Console.WriteLine($"Char: [{grid[activeIndex]}], Modulus: [{activeIndex % (width - 1)}]");
                 if (!intRgx.IsMatch(grid[activeIndex].ToString()))
                     break;
                 chars = chars.Prepend(grid[activeIndex]).ToList();
             }
             activeIndex = index;
-            Console.WriteLine($"Moving right, Modulus: [{activeIndex % width}]");
             while (++activeIndex % width != 0)
             {
-                Console.WriteLine($"Char: [{grid[activeIndex]}], Modulus: [{activeIndex % width}]");
                 if (!intRgx.IsMatch(grid[activeIndex].ToString()))
                     break;
                 chars = chars.Append(grid[activeIndex]).ToList();
             }
 
-            Console.WriteLine($"Parsed number: {string.Join("", chars)}");
             return int.Parse(string.Join("", chars));
         }
     }
