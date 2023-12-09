@@ -13,13 +13,13 @@ namespace AdventOfCode2023.Days
         public static void Run(string input)
         {
             string[] sections = input.Split("\r\n\r\n");
-            Console.WriteLine(Part1(sections[0]));
-            Console.WriteLine(Part2(sections[0]));
-
             foreach (string section in sections.Skip(1))
             {
                 maps.Add(section.Split("\r\n").Skip(1).Select(m => m.Split(' ').Select(x => ulong.Parse(x)).ToArray()).Select(x => (x[0], x[1], x[2])).ToArray());
             }
+
+            Console.WriteLine(Part1(sections[0]));
+            Console.WriteLine(Part2(sections[0]));
         }
 
         static ulong Part1(string section)
@@ -37,12 +37,16 @@ namespace AdventOfCode2023.Days
         {
             (ulong, ulong)[] seedPairs = section.Split(' ').Skip(1).Select(x => ulong.Parse(x)).Chunk(2).Select(x => (x[0], x[1])).ToArray();
 
-            List<ulong> locations = new List<ulong>();
+            ulong min = ulong.MaxValue;
             foreach (var pair in seedPairs)
                 for (ulong i = 0; i < pair.Item2; i++)
-                    locations.Add(GetLocation(pair.Item1 + i));
+                {
+                    ulong result = GetLocation(pair.Item1 + i);
+                    if (result < min)
+                        min = result;
+                }
 
-            return locations.Min();
+            return min;
         }
 
         static ulong Lookup(ulong item, (ulong, ulong, ulong)[] lookup)
