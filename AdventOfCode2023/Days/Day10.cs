@@ -9,15 +9,28 @@ namespace AdventOfCode2023.Days
     internal static class Day10
     {
         const int INF = 99999;
+        static int[,]? connectedPipesMarker;
 
         public static void Run(string input)
         {
-            Console.WriteLine(Part1(input));
+            string[] lines = input.Split("\r\n");
+            if (connectedPipesMarker == null)
+            {
+                connectedPipesMarker = new int[lines.Length, lines.Length];
+                for (int i = 0; i < connectedPipesMarker.GetLength(0); i++)
+                {
+                    for (int j = 0; j < connectedPipesMarker.GetLength(1); j++)
+                    {
+                        connectedPipesMarker[i, j] = 0;
+                    }
+                }
+            }
+
+            Console.WriteLine(Part1(lines));
         }
 
-        static int Part1(string input)
+        static int Part1(string[] lines)
         {
-            string[] lines = input.Split("\r\n");
             int[,] rawPipeGraph = new int[lines.Length, lines.Length];
             (int, int) start = (0, 0);
             for (int y = 0; y < lines.Length; y++)
@@ -33,7 +46,7 @@ namespace AdventOfCode2023.Days
             rawPipeGraph[start.Item1, start.Item2] = (int)GetStartType(start.Item1, start.Item2, rawPipeGraph);
 
             // Y+ down, X+ right
-            int[,] connectedPipesMarker = BoundaryFill(start.Item1, start.Item2, rawPipeGraph);
+            BoundaryFill(start.Item1, start.Item2, rawPipeGraph);
             for (int y = 0; y < lines.Length; y++)
             {
                 for (int x = 0; x < lines.Length; x++)
@@ -135,35 +148,22 @@ namespace AdventOfCode2023.Days
             }
         }
 
-        static int[,] BoundaryFill(int x, int y, int[,] grid, int[,]? paintGrid = null)
+        static void BoundaryFill(int x, int y, int[,] grid)
         {
-            if (paintGrid == null)
-            {
-                paintGrid = new int[grid.GetLength(0), grid.GetLength(1)];
-                for (int i = 0; i < paintGrid.GetLength(0); i++)
-                {
-                    for (int j = 0; j < paintGrid.GetLength(1); j++)
-                    {
-                        paintGrid[i, j] = 0;
-                    }
-                }
-            }
-
             if (x < 0 || x >= grid.GetLength(0) || y < 0 || y >= grid.GetLength(1))
-                return grid;
-            if (grid[x, y] != (int)PipeType.Empty && paintGrid[x, y] != 1)
+                return;
+            if (grid[x, y] != (int)PipeType.Empty && connectedPipesMarker[x, y] != 1)
             {
-                paintGrid[x, y] = 1;
+                connectedPipesMarker[x, y] = 1;
                 if (y + 1 < grid.GetLength(1) && IsPipeConnected(grid[x, y], grid[x, y + 1], 0))
-                    paintGrid = BoundaryFill(x, y + 1, grid, paintGrid);
+                    BoundaryFill(x, y + 1, grid);
                 if (x + 1 < grid.GetLength(0) && IsPipeConnected(grid[x, y], grid[x + 1, y], 1))
-                    paintGrid = BoundaryFill(x + 1, y, grid, paintGrid);
+                    BoundaryFill(x + 1, y, grid);
                 if (y - 1 >= 0 && IsPipeConnected(grid[x, y], grid[x, y - 1], 2))
-                    paintGrid = BoundaryFill(x, y - 1, grid, paintGrid);
+                    BoundaryFill(x, y - 1, grid);
                 if (x - 1 >= 0 && IsPipeConnected(grid[x, y], grid[x - 1, y], 3))
-                    paintGrid = BoundaryFill(x - 1, y, grid, paintGrid);
+                    BoundaryFill(x - 1, y, grid);
             }
-            return paintGrid;
         }
 
         static bool IsPipeConnected(int pipe1, int pipe2, int direction)
