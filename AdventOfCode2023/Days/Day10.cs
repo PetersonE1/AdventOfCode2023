@@ -8,30 +8,17 @@ namespace AdventOfCode2023.Days
 {
     internal static class Day10
     {
-        const int INF = 99999;
-        static int[,]? connectedPipesMarker;
-
         public static void Run(string input)
         {
-            string[] lines = input.Split("\r\n");
-            if (connectedPipesMarker == null)
-            {
-                connectedPipesMarker = new int[lines.Length, lines.Length];
-                for (int i = 0; i < connectedPipesMarker.GetLength(0); i++)
-                {
-                    for (int j = 0; j < connectedPipesMarker.GetLength(1); j++)
-                    {
-                        connectedPipesMarker[i, j] = 0;
-                    }
-                }
-            }
-
-            Console.WriteLine(Part1(lines));
+            Console.WriteLine(Part1(input));
         }
 
-        static int Part1(string[] lines)
+        static int Part1(string input)
         {
+            string[] lines = input.Split("\r\n");
             int[,] rawPipeGraph = new int[lines.Length, lines.Length];
+
+            // X+ right, Y+ down
             (int, int) start = (0, 0);
             for (int y = 0; y < lines.Length; y++)
             {
@@ -45,29 +32,30 @@ namespace AdventOfCode2023.Days
 
             rawPipeGraph[start.Item1, start.Item2] = (int)GetStartType(start.Item1, start.Item2, rawPipeGraph);
 
-            // Y+ down, X+ right
-            BoundaryFill(start.Item1, start.Item2, rawPipeGraph);
-            for (int y = 0; y < lines.Length; y++)
-            {
-                for (int x = 0; x < lines.Length; x++)
-                {
-                    if (connectedPipesMarker[x, y] != 1)
-                        connectedPipesMarker[x, y] = INF;
-                }
-            }
+            int[,] nodes = new int[lines.Length * lines.Length, lines.Length * lines.Length];
+            for (int i = 0; i < nodes.GetLength(0); i++)
+                for (int j = 0; j < nodes.GetLength(1); j++)
+                    nodes[i, j] = 0;
 
             for (int y = 0; y < lines.Length; y++)
             {
                 for (int x = 0; x < lines.Length; x++)
                 {
-                    Console.Write(connectedPipesMarker[x, y].ToString().PadLeft(7));
+                    for (int i = -1; i < 2; i += 2)
+                    {
+                        if (y + i >= 0 && y + i < lines.Length)
+                            if (IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x, y + i], i == -1 ? 2 : 0))
+                                nodes[y * lines.Length + x, (y + i) * lines.Length + x] = 1;
+                        if (x + i >= 0 && x + i < lines.Length)
+                            if (IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x + i, y], i == -1 ? 3 : 1))
+                                nodes[y * lines.Length + x, y * lines.Length + x + i] = 1;
+                    }
                 }
-                Console.WriteLine();
             }
 
-            int connectedPipes = 0;
-            int[,] pipeGraph = new int[connectedPipes, connectedPipes];
-            return 0;
+            int[] distancesFromStartNode = Dijkstra(nodes, start.Item2 * lines.Length + start.Item1);
+
+            return distancesFromStartNode.Where(x => x != int.MaxValue).Max();
         }
 
         enum PipeType
@@ -90,80 +78,46 @@ namespace AdventOfCode2023.Days
             Left
         }
 
-        static int[,] FloydWarshall(int[,] graph, int verticesCount, out int[,] prev)
+        static int MinDistance(int[] dist, bool[] sptSet)
         {
-            int[,] distance = new int[verticesCount, verticesCount];
-            prev = new int[verticesCount, verticesCount];
+            int min = int.MaxValue, min_index = -1;
 
-            for (int i = 0; i < verticesCount; ++i)
-            {
-                for (int j = 0; j < verticesCount; ++j)
+            for (int v = 0; v < dist.Length; v++)
+                if (sptSet[v] == false && dist[v] <= min)
                 {
-                    distance[i, j] = graph[i, j];
-                    prev[i, j] = i;
-                }
-            }
-
-            for (int k = 0; k < verticesCount; ++k)
-            {
-                for (int i = 0; i < verticesCount; ++i)
-                {
-                    for (int j = 0; j < verticesCount; ++j)
-                    {
-                        if (distance[i, k] + distance[k, j] < distance[i, j])
-                        {
-                            distance[i, j] = distance[i, k] + distance[k, j];
-                            prev[i, j] = prev[k, j];
-                        }
-                    }
-                }
-            }
-            return distance;
-        }
-
-        static int[] Path(int[,] prev, int a, int b)
-        {
-            List<int> path = new List<int>() { b };
-            while (a != b)
-            {
-                b = prev[a, b];
-                path = path.Prepend(b).ToList();
-            }
-            return path.ToArray();
-        }
-
-        static void Print(int[,] distance, int verticesCount)
-        {
-            for (int i = 0; i < verticesCount; ++i)
-            {
-                for (int j = 0; j < verticesCount; ++j)
-                {
-                    if (distance[i, j] == INF)
-                        Console.Write("INF".PadLeft(7));
-                    else
-                        Console.Write(distance[i, j].ToString().PadLeft(7));
+                    min = dist[v];
+                    min_index = v;
                 }
 
-                Console.WriteLine();
-            }
+            return min_index;
         }
 
-        static void BoundaryFill(int x, int y, int[,] grid)
+        static int[] Dijkstra(int[,] graph, int src)
         {
-            if (x < 0 || x >= grid.GetLength(0) || y < 0 || y >= grid.GetLength(1))
-                return;
-            if (grid[x, y] != (int)PipeType.Empty && connectedPipesMarker[x, y] != 1)
+            int V = graph.GetLength(0);
+            int[] dist = new int[V];
+
+            bool[] sptSet = new bool[V];
+            for (int i = 0; i < V; i++)
             {
-                connectedPipesMarker[x, y] = 1;
-                if (y + 1 < grid.GetLength(1) && IsPipeConnected(grid[x, y], grid[x, y + 1], 0))
-                    BoundaryFill(x, y + 1, grid);
-                if (x + 1 < grid.GetLength(0) && IsPipeConnected(grid[x, y], grid[x + 1, y], 1))
-                    BoundaryFill(x + 1, y, grid);
-                if (y - 1 >= 0 && IsPipeConnected(grid[x, y], grid[x, y - 1], 2))
-                    BoundaryFill(x, y - 1, grid);
-                if (x - 1 >= 0 && IsPipeConnected(grid[x, y], grid[x - 1, y], 3))
-                    BoundaryFill(x - 1, y, grid);
+                dist[i] = int.MaxValue;
+                sptSet[i] = false;
             }
+            dist[src] = 0;
+
+            for (int count = 0; count < V - 1; count++)
+            {
+                int u = MinDistance(dist, sptSet);
+
+                sptSet[u] = true;
+                for (int v = 0; v < V; v++)
+                    if (!sptSet[v] && graph[u, v] != 0
+                        && dist[u] != int.MaxValue
+                        && dist[u] + graph[u, v] < dist[v])
+                        dist[v] = dist[u] + graph[u, v];
+            }
+
+            return dist;
         }
 
         static bool IsPipeConnected(int pipe1, int pipe2, int direction)
