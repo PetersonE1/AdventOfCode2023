@@ -10,7 +10,8 @@ namespace AdventOfCode2023.Days
     {
         public static void Run(string input)
         {
-            Console.WriteLine(Part1(input));
+            //Console.WriteLine(Part1(input));
+            Console.WriteLine(Part2(input));
         }
 
         static int Part1(string input)
@@ -56,6 +57,85 @@ namespace AdventOfCode2023.Days
             int[] distancesFromStartNode = Dijkstra(nodes, start.Item2 * lines.Length + start.Item1);
 
             return distancesFromStartNode.Where(x => x != int.MaxValue).Max();
+        }
+
+        static int Part2(string input)
+        {
+            string[] lines = input.Split("\r\n");
+            int[,] rawPipeGraph = new int[lines.Length, lines.Length];
+
+            // X+ right, Y+ down
+            (int, int) start = (0, 0);
+            for (int y = 0; y < lines.Length; y++)
+            {
+                for (int x = 0; x < lines.Length; x++)
+                {
+                    rawPipeGraph[x, y] = lines[y][x];
+                    if (lines[y][x] == (int)PipeType.START)
+                        start = (x, y);
+                }
+            }
+
+            rawPipeGraph[start.Item1, start.Item2] = (int)GetStartType(start.Item1, start.Item2, rawPipeGraph);
+
+            int[,] nodes = new int[lines.Length * lines.Length, lines.Length * lines.Length];
+            for (int i = 0; i < nodes.GetLength(0); i++)
+                for (int j = 0; j < nodes.GetLength(1); j++)
+                    nodes[i, j] = 0;
+
+            for (int y = 0; y < lines.Length; y++)
+            {
+                for (int x = 0; x < lines.Length; x++)
+                {
+                    for (int i = -1; i < 2; i += 2)
+                    {
+                        if (y + i >= 0 && y + i < lines.Length)
+                            if (IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x, y + i], i == -1 ? 2 : 0))
+                                nodes[y * lines.Length + x, (y + i) * lines.Length + x] = 1;
+                        if (x + i >= 0 && x + i < lines.Length)
+                            if (IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x + i, y], i == -1 ? 3 : 1))
+                                nodes[y * lines.Length + x, y * lines.Length + x + i] = 1;
+                    }
+                }
+            }
+
+            int[] distancesFromStartNode = Dijkstra(nodes, start.Item2 * lines.Length + start.Item1);
+
+            int[,] paintGrid = new int[lines.Length, lines.Length];
+            for (int i = 0; i < lines.Length; i++)
+            {
+                for (int j = 0; j < lines.Length; j++)
+                {
+                    paintGrid[i, j] = 0;
+                }
+            }
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (distancesFromStartNode[i] == int.MaxValue)
+                    BoundaryFill(i, 0, rawPipeGraph, distancesFromStartNode, ref paintGrid);
+                if (distancesFromStartNode[i * lines.Length] == int.MaxValue)
+                    BoundaryFill(0, i, rawPipeGraph, distancesFromStartNode, ref paintGrid);
+                if (distancesFromStartNode[^(i + 1)] == int.MaxValue)
+                    BoundaryFill(lines.Length - 1 - i, lines.Length - 1, rawPipeGraph, distancesFromStartNode, ref paintGrid);
+                if (distancesFromStartNode[^((i * lines.Length) + 1)] == int.MaxValue)
+                    BoundaryFill(lines.Length - 1, lines.Length - 1 - i, rawPipeGraph, distancesFromStartNode, ref paintGrid);
+            }
+            
+
+            for (int i = 0; i < paintGrid.GetLength(0); i++)
+            {
+                for (int j = 0; j < paintGrid.GetLength(1); j++)
+                {
+                    if (paintGrid[i, j] == 1)
+                        Console.Write("#");
+                    else
+                        Console.Write(".");
+                }
+                Console.WriteLine();
+            }
+
+            return 0;
         }
 
         enum PipeType
@@ -186,6 +266,24 @@ namespace AdventOfCode2023.Days
                 }
             }
             return PipeType.Empty;
+        }
+
+        static void BoundaryFill(int x, int y, int[,] grid, int[] dijkstraGrid, ref int[,]? paintGrid)
+        {
+            if (x < 0 || x >= grid.GetLength(0) || y < 0 || y >= grid.GetLength(1))
+                return;
+            if (dijkstraGrid[y * grid.GetLength(0) + x] == int.MaxValue && paintGrid[y, x] != 1)
+            {
+                paintGrid[y, x] = 1;
+                if (y + 1 < grid.GetLength(1))
+                    BoundaryFill(x, y + 1, grid, dijkstraGrid, ref paintGrid);
+                if (x + 1 < grid.GetLength(0))
+                    BoundaryFill(x + 1, y, grid, dijkstraGrid, ref paintGrid);
+                if (y - 1 >= 0)
+                    BoundaryFill(x, y - 1, grid, dijkstraGrid, ref paintGrid);
+                if (x - 1 >= 0)
+                    BoundaryFill(x - 1, y, grid, dijkstraGrid, ref paintGrid);
+            }
         }
     }
 }
