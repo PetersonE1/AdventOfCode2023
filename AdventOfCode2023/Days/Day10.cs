@@ -155,13 +155,17 @@ namespace AdventOfCode2023.Days
                     else
                     {
                         if (nodes[x, y] == 1)
-                            Console.Write("o");
+                            Console.Write((char)rawPipeGraph[x, y]);
                         else
                             Console.Write(".");
                     }
                 }
                 Console.WriteLine();
             }
+
+            // Setup node graph offset by 0.5 up and right to represent midpoints
+            // Node graph of ints representing a flagged enum for bypassable directions at that midpoint
+            // Bypassable nodes likely cover all empty nodes as well, match every node point direction that doesn't hit a wall
 
             return insideNodes;
         }
