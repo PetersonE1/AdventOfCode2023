@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -159,7 +160,17 @@ namespace AdventOfCode2023.Days
                 Console.WriteLine();
             }
 
-            return distancesFromStartNode.Where(x => x != int.MaxValue).Max();
+            int insideNodes = 0;
+            for (int y = 0; y < lines.Length; y++)
+            {
+                for (int x = 0; x < lines[0].Length; x++)
+                {
+                    if (paintGrid[x, y] == 0 && distancesFromStartNode[y * lines[0].Length + x] == int.MaxValue)
+                        insideNodes++;
+                }
+            }
+
+            return insideNodes;
         }
 
         enum PipeType
