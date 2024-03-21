@@ -15,55 +15,42 @@ namespace AdventOfCode2023.Days
             Console.WriteLine(Calculate(input, 1000000));
         }
 
-        private static int Calculate(string input, int expansion)
+        private static long Calculate(string input, int expansion)
         {
             List<List<char>> nodes = input.Split("\r\n").Select(x => x.ToCharArray().ToList()).ToList();
-            nodes = ExpandUniverse(nodes, expansion - 1);
 
             (int x, int y)[] galaxies = FindGalaxies(nodes);
             ((int x, int y) a, (int x, int y) b)[] combinations = galaxies.Combinations();
+            
+            return ExpandUniverse(nodes, combinations, expansion - 1);
+        }
 
-            int sum = 0;
+        private static long ExpandUniverse(List<List<char>> nodes, ((int x, int y) a, (int x, int y) b)[] combinations, int expansion)
+        {
+            long sum = 0;
             foreach (var (a, b) in combinations)
             {
                 sum += Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y);
+                int start_x = Math.Min(a.x, b.x);
+                int end_x = Math.Max(a.x, b.x);
+                for (int x = start_x; x <= end_x; x++)
+                {
+                    if (!nodes.GetRow(x).Contains('#'))
+                    {
+                        sum += expansion;
+                    }
+                }
+                int start_y = Math.Min(a.y, b.y);
+                int end_y = Math.Max(a.y, b.y);
+                for (int y = start_y; y <= end_y; y++)
+                {
+                    if (!nodes.GetColumn(y).Contains('#'))
+                    {
+                        sum += expansion;
+                    }
+                }
             }
-
             return sum;
-        }
-
-        private static List<List<char>> ExpandUniverse(List<List<char>> nodes, int expansion)
-        {
-            int index = 0;
-            while (index < nodes.Count)
-            {
-                if (!nodes.GetRow(index).Any(c => c != '.'))
-                {
-                    for (int e = 0; e < expansion; e++)
-                    {
-                        nodes.Insert(index, nodes.GetRow(index).ToList());
-                        index++;
-                    }
-                }
-                index++;
-            }
-            index = 0;
-            while (index < nodes.GetRow(0).Count)
-            {
-                if (!nodes.GetColumn(index).Any(c => c != '.'))
-                {
-                    for (int e = 0; e < expansion; e++)
-                    {
-                        for (int i = 0; i < nodes.Count; i++)
-                        {
-                            nodes[i].Insert(index, '.');
-                        }
-                        index++;
-                    }
-                }
-                index++;
-            }
-            return nodes;
         }
 
         private static (int x, int y)[] FindGalaxies(List<List<char>> nodes)
