@@ -46,10 +46,10 @@ namespace AdventOfCode2023.Days
                     for (int i = -1; i < 2; i += 2)
                     {
                         if (y + i >= 0 && y + i < lines.Length)
-                            if (IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x, y + i], i == -1 ? 2 : 0))
+                            if (IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x, y + i], i == -1 ? Direction.Up : Direction.Down))
                                 nodes[y * lines[0].Length + x, (y + i) * lines[0].Length + x] = 1;
                         if (x + i >= 0 && x + i < lines[0].Length)
-                            if (IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x + i, y], i == -1 ? 3 : 1))
+                            if (IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x + i, y], i == -1 ? Direction.Left : Direction.Right))
                                 nodes[y * lines[0].Length + x, y * lines[0].Length + x + i] = 1;
                     }
                 }
@@ -100,8 +100,7 @@ namespace AdventOfCode2023.Days
             }
             nodes[start.Item1, start.Item2] = 1;
 
-            List<(int, int)> fill_pipes = new();
-            fill_pipes.Add(start);
+            List<(int, int)> fill_pipes = [start];
             while (fill_pipes.Count > 0)
             {
                 List<(int, int)> newPipes = new();
@@ -167,6 +166,23 @@ namespace AdventOfCode2023.Days
             // Node graph of ints representing a flagged enum for bypassable directions at that midpoint
             // Bypassable nodes likely cover all empty nodes as well, match every node point direction that doesn't hit a wall
 
+            int[,] pathGraph = new int[lines[0].Length - 1, lines.Length - 1];
+            for (int y = 0; y < lines.Length - 1; y++)
+            {
+                for (int x = 0; x < lines[0].Length - 1; x++)
+                {
+                    pathGraph[x, y] = 0;
+                    if (y != lines.Length && !IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x, y + 1], Direction.Down))
+                        pathGraph[x, y] |= (int)Direction.Left;
+                    if (x != lines[0].Length && !IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x + 1, y], Direction.Right))
+                        pathGraph[x, y] |= (int)Direction.Up;
+                    if (y != 0 && !IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x, y - 1], Direction.Up))
+                        pathGraph[x, y] |= (int)Direction.Right;
+                    if (x != 0 && !IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x - 1, y], Direction.Left))
+                        pathGraph[x, y] |= (int)Direction.Down;
+                }
+            }
+
             return insideNodes;
         }
 
@@ -182,12 +198,13 @@ namespace AdventOfCode2023.Days
             START = 83
         }
 
+        [Flags]
         enum Direction
         {
-            Down,
-            Right,
-            Up,
-            Left
+            Down = 1,
+            Right = 2,
+            Up = 4,
+            Left = 8
         }
 
         static int MinDistance(int[] dist, bool[] sptSet)
@@ -232,27 +249,27 @@ namespace AdventOfCode2023.Days
             return dist;
         }
 
-        static bool IsPipeConnected(int pipe1, int pipe2, int direction)
+        static bool IsPipeConnected(int pipe1, int pipe2, Direction direction)
         {
-            if (direction == (int)Direction.Down)
+            if (direction == Direction.Down)
             {
                 if (pipe1 == (int)PipeType.NS || pipe1 == (int)PipeType.SW || pipe1 == (int)PipeType.SE)
                     return pipe2 == (int)PipeType.NS || pipe2 == (int)PipeType.NE || pipe2 == (int)PipeType.NW;
                 return false;
             }
-            if (direction == (int)Direction.Right)
+            if (direction == Direction.Right)
             {
                 if (pipe1 == (int)PipeType.EW || pipe1 == (int)PipeType.NE || pipe1 == (int)PipeType.SE)
                     return pipe2 == (int)PipeType.EW || pipe2 == (int)PipeType.NW || pipe2 == (int)PipeType.SW;
                 return false;
             }
-            if (direction == (int)Direction.Up)
+            if (direction == Direction.Up)
             {
                 if (pipe1 == (int)PipeType.NS || pipe1 == (int)PipeType.NE || pipe1 == (int)PipeType.NW)
                     return pipe2 == (int)PipeType.NS || pipe2 == (int)PipeType.SW || pipe2 == (int)PipeType.SE;
                 return false;
             }
-            if (direction == (int)Direction.Left)
+            if (direction == Direction.Left)
             {
                 if (pipe1 == (int)PipeType.EW || pipe1 == (int)PipeType.NW || pipe1 == (int)PipeType.SW)
                     return pipe2 == (int)PipeType.EW || pipe2 == (int)PipeType.NE || pipe2 == (int)PipeType.SE;
@@ -268,28 +285,28 @@ namespace AdventOfCode2023.Days
             {
                 if (guess == PipeType.Empty || guess == PipeType.START)
                     continue;
-                if (y + 1 < grid.GetLength(1) && IsPipeConnected((int)guess, grid[x, y+1], 0))
+                if (y + 1 < grid.GetLength(1) && IsPipeConnected((int)guess, grid[x, y+1], Direction.Down))
                 {
                     if (!guesses.Contains(guess))
                         guesses.Add(guess);
                     else
                         return guess;
                 }
-                if (x + 1 < grid.GetLength(0) && IsPipeConnected((int)guess, grid[x+1, y], 1))
+                if (x + 1 < grid.GetLength(0) && IsPipeConnected((int)guess, grid[x+1, y], Direction.Right))
                 {
                     if (!guesses.Contains(guess))
                         guesses.Add(guess);
                     else
                         return guess;
                 }
-                if (y - 1 >= 0 && IsPipeConnected((int)guess, grid[x, y-1], 2))
+                if (y - 1 >= 0 && IsPipeConnected((int)guess, grid[x, y-1], Direction.Up))
                 {
                     if (!guesses.Contains(guess))
                         guesses.Add(guess);
                     else
                         return guess;
                 }
-                if (x - 1 >= 0 && IsPipeConnected((int)guess, grid[x-1, y], 3))
+                if (x - 1 >= 0 && IsPipeConnected((int)guess, grid[x-1, y], Direction.Left))
                 {
                     if (!guesses.Contains(guess))
                         guesses.Add(guess);
@@ -324,22 +341,22 @@ namespace AdventOfCode2023.Days
             if (x < 0 || x >= grid.GetLength(0) || y < 0 || y >= grid.GetLength(1))
                 return newPipes;
 
-            if (y + 1 < grid.GetLength(1) && paintGrid[x, y + 1] == 0 && IsPipeConnected(grid[x, y], grid[x, y + 1], 0))
+            if (y + 1 < grid.GetLength(1) && paintGrid[x, y + 1] == 0 && IsPipeConnected(grid[x, y], grid[x, y + 1], Direction.Down))
             {
                 paintGrid[x, y+1] = 1;
                 newPipes.Add((x, y+1));
             }
-            if (x + 1 < grid.GetLength(0) && paintGrid[x + 1, y] == 0 && IsPipeConnected(grid[x, y], grid[x + 1, y], 1))
+            if (x + 1 < grid.GetLength(0) && paintGrid[x + 1, y] == 0 && IsPipeConnected(grid[x, y], grid[x + 1, y], Direction.Right))
             {
                 paintGrid[x + 1, y] = 1;
                 newPipes.Add((x + 1, y));
             }
-            if (y - 1 >= 0 && paintGrid[x, y - 1] == 0 && IsPipeConnected(grid[x, y], grid[x, y - 1], 2))
+            if (y - 1 >= 0 && paintGrid[x, y - 1] == 0 && IsPipeConnected(grid[x, y], grid[x, y - 1], Direction.Up))
             {
                 paintGrid[x, y - 1] = 1;
                 newPipes.Add((x, y - 1));
             }
-            if (x - 1 >= 0 && paintGrid[x - 1, y] == 0 && IsPipeConnected(grid[x, y], grid[x - 1, y], 3))
+            if (x - 1 >= 0 && paintGrid[x - 1, y] == 0 && IsPipeConnected(grid[x, y], grid[x - 1, y], Direction.Left))
             {
                 paintGrid[x - 1, y] = 1;
                 newPipes.Add((x - 1, y));
