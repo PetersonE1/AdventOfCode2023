@@ -135,13 +135,26 @@ namespace AdventOfCode2023.Days
                     BoundaryFill(x, lines.Length - 1, rawPipeGraph, nodes, ref paintGrid);
             }
 
-            int insideNodes = 0;
-            for (int y = 0; y < lines.Length; y++)
+            // Setup node graph offset by 0.5 up and right to represent midpoints
+            // Node graph of ints representing a flagged enum for bypassable directions at that midpoint
+            // Bypassable nodes likely cover all empty nodes as well, match every node point direction that doesn't hit a wall
+
+            int[,] pathGraph = new int[lines[0].Length - 1, lines.Length - 1];
+            for (int y = 0; y < lines.Length - 1; y++)
             {
-                for (int x = 0; x < lines[0].Length; x++)
+                for (int x = 0; x < lines[0].Length - 1; x++)
                 {
-                    if (paintGrid[x, y] == 0 && nodes[x, y] == 0)
-                        insideNodes++;
+                    pathGraph[x, y] = 0;
+                    if (y != lines.Length && !IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x, y + 1], Direction.Down))
+                        pathGraph[x, y] |= (int)Direction.Left;
+                    if (x != lines[0].Length && !IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x + 1, y], Direction.Right))
+                        pathGraph[x, y] |= (int)Direction.Up;
+                    if (y != lines.Length && x != lines[0].Length 
+                        && !IsPipeConnected(rawPipeGraph[x + 1, y], rawPipeGraph[x + 1, y + 1], Direction.Down))
+                        pathGraph[x, y] |= (int)Direction.Right;
+                    if (y != lines.Length && x != lines[0].Length
+                        && !IsPipeConnected(rawPipeGraph[x, y + 1], rawPipeGraph[x + 1, y + 1], Direction.Right))
+                        pathGraph[x, y] |= (int)Direction.Down;
                 }
             }
 
@@ -161,26 +174,92 @@ namespace AdventOfCode2023.Days
                 }
                 Console.WriteLine();
             }
+            for (int i = 0; i < lines[0].Length; i++)
+                Console.Write("=");
+            Console.WriteLine();
 
-            // Setup node graph offset by 0.5 up and right to represent midpoints
-            // Node graph of ints representing a flagged enum for bypassable directions at that midpoint
-            // Bypassable nodes likely cover all empty nodes as well, match every node point direction that doesn't hit a wall
-
-            int[,] pathGraph = new int[lines[0].Length - 1, lines.Length - 1];
-            for (int y = 0; y < lines.Length - 1; y++)
+            int[,] offsetGraph = new int[pathGraph.GetLength(0), pathGraph.GetLength(1)];
+            for (int y = 0; y < pathGraph.GetLength(1); y++)
             {
-                for (int x = 0; x < lines[0].Length - 1; x++)
+                if (offsetGraph[0, y] == 0)
+                    FillOffset(pathGraph, ref offsetGraph, (0, y));
+                if (offsetGraph[pathGraph.GetLength(0) - 1, y] == 0)
+                    FillOffset(pathGraph, ref offsetGraph, (pathGraph.GetLength(0) - 1, y));
+            }
+            for (int x = 0; x < pathGraph.GetLength(0); x++)
+            {
+                if (offsetGraph[x, 0] == 0)
+                    FillOffset(pathGraph, ref offsetGraph, (x, 0));
+                if (offsetGraph[x, pathGraph.GetLength(1) - 1] == 0)
+                    FillOffset(pathGraph, ref offsetGraph, (x, pathGraph.GetLength(1) - 1));
+            }
+
+            for (int y = 1; y < lines.Length - 1; y++)
+            {
+                for (int x = 1; x < lines[0].Length - 1; x++)
                 {
-                    pathGraph[x, y] = 0;
-                    if (y != lines.Length && !IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x, y + 1], Direction.Down))
-                        pathGraph[x, y] |= (int)Direction.Left;
-                    if (x != lines[0].Length && !IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x + 1, y], Direction.Right))
-                        pathGraph[x, y] |= (int)Direction.Up;
-                    if (y != 0 && !IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x, y - 1], Direction.Up))
-                        pathGraph[x, y] |= (int)Direction.Right;
-                    if (x != 0 && !IsPipeConnected(rawPipeGraph[x, y], rawPipeGraph[x - 1, y], Direction.Left))
-                        pathGraph[x, y] |= (int)Direction.Down;
+                    if (nodes[x, y] == 0)
+                    {
+                        if (offsetGraph[x - 1, y - 1] == 1
+                            && offsetGraph[x, y - 1] == 1
+                            && offsetGraph[x - 1, y] == 1
+                            && offsetGraph[x, y] == 1)
+                        {
+                            paintGrid[x, y] = 1;
+                        }
+                    }
                 }
+            }
+
+            int insideNodes = 0;
+            for (int y = 0; y < lines.Length; y++)
+            {
+                for (int x = 0; x < lines[0].Length; x++)
+                {
+                    if (paintGrid[x, y] == 0 && nodes[x, y] == 0)
+                        insideNodes++;
+                }
+            }
+
+            for (int y = 0; y < offsetGraph.GetLength(1); y++)
+            {
+                for (int x = 0; x < offsetGraph.GetLength(0); x++)
+                {
+                    Console.Write(pathGraph[x, y].ToString().PadLeft(3));
+                }
+                Console.WriteLine();
+            }
+            for (int i = 0; i < lines[0].Length; i++)
+                Console.Write("=");
+            Console.WriteLine();
+
+            for (int y = 0; y < offsetGraph.GetLength(1); y++)
+            {
+                for (int x = 0; x < offsetGraph.GetLength(0); x++)
+                {
+                    Console.Write(offsetGraph[x, y]);
+                }
+                Console.WriteLine();
+            }
+            for (int i = 0; i < lines[0].Length; i++)
+                Console.Write("=");
+            Console.WriteLine();
+
+            for (int y = 0; y < lines.Length; y++)
+            {
+                for (int x = 0; x < lines[0].Length; x++)
+                {
+                    if (paintGrid[x, y] == 1)
+                        Console.Write("#");
+                    else
+                    {
+                        if (nodes[x, y] == 1)
+                            Console.Write((char)rawPipeGraph[x, y]);
+                        else
+                            Console.Write(".");
+                    }
+                }
+                Console.WriteLine();
             }
 
             return insideNodes;
@@ -251,6 +330,7 @@ namespace AdventOfCode2023.Days
 
         static bool IsPipeConnected(int pipe1, int pipe2, Direction direction)
         {
+            if (pipe1 == (int)PipeType.Empty || pipe2 == (int)PipeType.Empty) return false;
             if (direction == Direction.Down)
             {
                 if (pipe1 == (int)PipeType.NS || pipe1 == (int)PipeType.SW || pipe1 == (int)PipeType.SE)
@@ -362,6 +442,27 @@ namespace AdventOfCode2023.Days
                 newPipes.Add((x - 1, y));
             }
             return newPipes;
+        }
+
+        static void FillOffset(int[,] graph, ref int[,] offsetGraph, (int x, int y) pos)
+        {
+            if (pos.x < 0 || pos.x >= graph.GetLength(0) || pos.y < 0 || pos.y >= graph.GetLength(1))
+                return;
+            if (offsetGraph[pos.x, pos.y] == 1)
+                return;
+            offsetGraph[pos.x, pos.y] = 1;
+
+            int x = pos.x;
+            int y = pos.y;
+
+            if (x != 0 && ((Direction)graph[x, y]).HasFlag(Direction.Left) && offsetGraph[x - 1, y] == 0)
+                FillOffset(graph, ref offsetGraph, (x - 1, y));
+            if (x != graph.GetLength(0) - 1 && ((Direction)graph[x, y]).HasFlag(Direction.Right) && offsetGraph[x + 1, y] == 0)
+                FillOffset(graph, ref offsetGraph, (x + 1, y));
+            if (y != 0 && ((Direction)graph[x, y]).HasFlag(Direction.Up) && offsetGraph[x, y - 1] == 0)
+                FillOffset(graph, ref offsetGraph, (x, y - 1));
+            if (y != graph.GetLength(1) - 1 && ((Direction)graph[x, y]).HasFlag(Direction.Down) && offsetGraph[x, y + 1] == 0)
+                FillOffset(graph, ref offsetGraph, (x, y + 1));
         }
     }
 }
