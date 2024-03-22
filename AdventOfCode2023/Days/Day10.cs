@@ -11,7 +11,7 @@ namespace AdventOfCode2023.Days
     {
         public static void Run(string input)
         {
-            //Console.WriteLine(Part1(input));
+            Console.WriteLine(Part1(input));
             Console.WriteLine(Part2(input));
         }
 
@@ -56,7 +56,7 @@ namespace AdventOfCode2023.Days
             }
 
             int[] distancesFromStartNode = Dijkstra(nodes, start.Item2 * lines[0].Length + start.Item1);
-            for (int y = 0; y < lines.Length; y++)
+            /*for (int y = 0; y < lines.Length; y++)
             {
                 for (int x = 0; x < lines[0].Length; x++)
                 {
@@ -66,7 +66,7 @@ namespace AdventOfCode2023.Days
                         Console.Write(distancesFromStartNode[y * lines[0].Length + x].ToString().PadLeft(3));
                 }
                 Console.WriteLine();
-            }
+            }*/
 
             return distancesFromStartNode.Where(x => x != int.MaxValue).Max();
         }
@@ -158,7 +158,7 @@ namespace AdventOfCode2023.Days
                 }
             }
 
-            for (int y = 0; y < lines.Length; y++)
+            /*for (int y = 0; y < lines.Length; y++)
             {
                 for (int x = 0; x < lines[0].Length; x++)
                 {
@@ -176,21 +176,21 @@ namespace AdventOfCode2023.Days
             }
             for (int i = 0; i < lines[0].Length; i++)
                 Console.Write("=");
-            Console.WriteLine();
+            Console.WriteLine();*/
 
             int[,] offsetGraph = new int[pathGraph.GetLength(0), pathGraph.GetLength(1)];
             for (int y = 0; y < pathGraph.GetLength(1); y++)
             {
-                if (offsetGraph[0, y] == 0)
+                if (offsetGraph[0, y] == 0 && ((Direction)pathGraph[0, y]).HasFlag(Direction.Left))
                     FillOffset(pathGraph, ref offsetGraph, (0, y));
-                if (offsetGraph[pathGraph.GetLength(0) - 1, y] == 0)
+                if (offsetGraph[pathGraph.GetLength(0) - 1, y] == 0 && ((Direction)pathGraph[pathGraph.GetLength(0) - 1, y]).HasFlag(Direction.Right))
                     FillOffset(pathGraph, ref offsetGraph, (pathGraph.GetLength(0) - 1, y));
             }
             for (int x = 0; x < pathGraph.GetLength(0); x++)
             {
-                if (offsetGraph[x, 0] == 0)
+                if (offsetGraph[x, 0] == 0 && ((Direction)pathGraph[x, 0]).HasFlag(Direction.Up))
                     FillOffset(pathGraph, ref offsetGraph, (x, 0));
-                if (offsetGraph[x, pathGraph.GetLength(1) - 1] == 0)
+                if (offsetGraph[x, pathGraph.GetLength(1) - 1] == 0 && ((Direction)pathGraph[x, pathGraph.GetLength(1) - 1]).HasFlag(Direction.Down))
                     FillOffset(pathGraph, ref offsetGraph, (x, pathGraph.GetLength(1) - 1));
             }
 
@@ -221,7 +221,7 @@ namespace AdventOfCode2023.Days
                 }
             }
 
-            for (int y = 0; y < offsetGraph.GetLength(1); y++)
+            /*for (int y = 0; y < offsetGraph.GetLength(1); y++)
             {
                 for (int x = 0; x < offsetGraph.GetLength(0); x++)
                 {
@@ -243,9 +243,9 @@ namespace AdventOfCode2023.Days
             }
             for (int i = 0; i < lines[0].Length; i++)
                 Console.Write("=");
-            Console.WriteLine();
+            Console.WriteLine();*/
 
-            for (int y = 0; y < lines.Length; y++)
+            /*for (int y = 0; y < lines.Length; y++)
             {
                 for (int x = 0; x < lines[0].Length; x++)
                 {
@@ -260,7 +260,7 @@ namespace AdventOfCode2023.Days
                     }
                 }
                 Console.WriteLine();
-            }
+            }*/
 
             return insideNodes;
         }
