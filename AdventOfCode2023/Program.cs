@@ -1,7 +1,7 @@
 ﻿using AdventOfCode2023.Days;
 using System.Reflection;
 
-string rootPath = @"C:\Users\Peter\source\repos\AdventOfCode2023\AdventOfCode2023\";
+string rootPath = Directory.GetCurrentDirectory() + @"\";
 bool TESTING = true;
 
 string[] arguments = Console.ReadLine().Split(" ");
