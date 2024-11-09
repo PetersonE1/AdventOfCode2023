@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace AdventOfCode2023.Days
 {
@@ -12,10 +8,35 @@ namespace AdventOfCode2023.Days
     {
         public static void Run(string input)
         {
-            Console.WriteLine(Part1(input));
+            //Console.WriteLine(BruteForce(input));
+            Console.WriteLine(StateMachine(input));
+
+            StringBuilder sb = new();
+            string[] lines = input.Split("\r\n");
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i];
+                string[] sides = line.Split();
+                
+                sb.Append(sides[0] + '?');
+                sb.Append(sides[0] + '?');
+                sb.Append(sides[0] + '?');
+                sb.Append(sides[0] + '?');
+                sb.Append(sides[0] + ' ');
+
+                sb.Append(sides[1] + ',');
+                sb.Append(sides[1] + ',');
+                sb.Append(sides[1] + ',');
+                sb.Append(sides[1] + ',');
+                sb.Append(sides[1]);
+
+                if (i != lines.Length - 1)
+                    sb.AppendLine();
+            }
+            Console.WriteLine(StateMachine(sb.ToString(), true));
         }
 
-        private static ulong Part1(string input)
+        private static ulong BruteForce(string input)
         {
             // Remove confirmed sequences of damaged springs from the input list
             // Attempt to logically confirm unknowns next to confirmed damages
@@ -75,7 +96,79 @@ namespace AdventOfCode2023.Days
             return totalCount;
         }
 
-        public static void Increment(BitArray bArray)
+        private static ulong StateMachine(string input, bool extendDebug = false)
+        {
+            (string sequence, int[] lengths)[] lines = input.Split("\r\n").Select(n => {
+                var arr = n.Split(' ');
+                return (arr[0], arr[1].Split(',').Select(r => int.Parse(r)).ToArray());
+            }).ToArray();
+
+            ulong count = 0;
+            uint lineCount = 0;
+            foreach (var line in lines)
+            {
+                lineCount++;
+                if (!extendDebug && lineCount % 100 == 0)
+                    Console.WriteLine($"Processing line {lineCount}...");
+                if (extendDebug)
+                    Console.WriteLine($"Processing line {lineCount}...");
+
+                List<DeterministicFiniteAutomata.DFAStep> steps = new();
+                for (int i = 0; i < line.lengths.Length; i++)
+                {
+                    steps.Add(new(['#'], ['.']));
+                    for (int j = 1; j < line.lengths[i]; j++)
+                    {
+                        steps.Add(new(['#'], []));
+                    }
+                    if (i != line.lengths.Length - 1)
+                    {
+                        steps.Add(new(['.'], []));
+                    }
+                    if (i == line.lengths.Length - 1)
+                    {
+                        steps.Add(new([], ['.']));
+                    }
+                }
+                DeterministicFiniteAutomata dfa = new(steps.ToArray());
+                count += StepQueue(new Queue<char>(line.sequence), dfa);
+            }
+
+            return count;
+        }
+
+        private static ulong StepQueue(Queue<char> queue, DeterministicFiniteAutomata dfa)
+        {
+            if (queue.Count == 0)
+            {
+                if (dfa.IsDone)
+                    return 1;
+                return 0;
+            }
+
+            char c = queue.Dequeue();
+            
+            if (c == '?')
+            {
+                List<char> l1 = ['#'];
+                l1.AddRange(queue);
+                List<char> l2 = ['.'];
+                l2.AddRange(queue);
+                return StepQueue(new(l1), new(dfa.Steps, dfa.Index)) + StepQueue(new(l2), new(dfa.Steps, dfa.Index));
+            }
+
+            DeterministicFiniteAutomata.StepResult result = dfa.ValidateNext(c);
+            if (result == DeterministicFiniteAutomata.StepResult.Continue)
+                return StepQueue(new(queue), new(dfa.Steps, dfa.Index + 1));
+            if (result == DeterministicFiniteAutomata.StepResult.Stay)
+                return StepQueue(new(queue), new(dfa.Steps, dfa.Index));
+            if (result == DeterministicFiniteAutomata.StepResult.Invalid)
+                return 0;
+            
+            throw new InvalidOperationException($"DFA returned bad data: {result}");
+        }
+
+        private static void Increment(BitArray bArray)
         {
             for (int i = 0; i < bArray.Count; i++)
             {
@@ -89,7 +182,7 @@ namespace AdventOfCode2023.Days
             }
         }
 
-        public static Boolish[] ToBoolish(string sequence)
+        private static Boolish[] ToBoolish(string sequence)
         {
             Boolish[] boolishes = new Boolish[sequence.Length];
             for (int i = 0; i < boolishes.Length; i++)
@@ -106,7 +199,7 @@ namespace AdventOfCode2023.Days
             return boolishes;
         }
 
-        public static bool BitwiseANDCheck(BitArray a, Boolish[] b)
+        private static bool BitwiseANDCheck(BitArray a, Boolish[] b)
         {
             if (a.Length != b.Length)
                 throw new ArgumentException("Arrays are not the same length");
@@ -119,7 +212,7 @@ namespace AdventOfCode2023.Days
             return true;
         }
 
-        public static IEnumerable<bool[]> GroupConsecutive(this IEnumerable<bool> list)
+        private static IEnumerable<bool[]> GroupConsecutive(this IEnumerable<bool> list)
         {
             if (list.Any())
             {
@@ -206,5 +299,53 @@ namespace AdventOfCode2023.Days
 
         public static bool operator ==(bool a, Boolish b) => b.Equals(a);
         public static bool operator !=(bool a, Boolish b) => !b.Equals(a);
+    }
+
+    public class DeterministicFiniteAutomata
+    {
+        public int Index { get; private set; }
+
+        public DFAStep[] Steps { get; set; }
+
+        public bool IsDone => Index >= Steps.Length || (Index == Steps.Length - 1 && Steps[Index].ForwardInputs.Length == 0);
+
+        public enum StepResult
+        {
+            Continue,
+            Stay,
+            Invalid
+        }
+
+        public class DFAStep
+        {
+            public char[] ForwardInputs;
+            public char[] LoopedInputs;
+
+            public DFAStep(char[] forward, char[] looped)
+            {
+                ForwardInputs = forward;
+                LoopedInputs = looped;
+            }
+
+            public StepResult Validate(char value)
+            {
+                if (ForwardInputs.Contains(value))
+                    return StepResult.Continue;
+                if (LoopedInputs.Contains(value))
+                    return StepResult.Stay;
+                return StepResult.Invalid;
+            }
+        }
+
+        public DeterministicFiniteAutomata(DFAStep[] steps, int index = 0)
+        {
+            Steps = steps;
+            Index = index;
+        }
+
+        public StepResult ValidateNext(char value)
+        {
+            return Steps[Index].Validate(value);
+        }
     }
 }
