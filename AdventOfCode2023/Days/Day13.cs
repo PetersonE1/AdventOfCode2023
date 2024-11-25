@@ -44,10 +44,10 @@ namespace AdventOfCode2023.Days
             foreach (string[] grid in grids)
             {
                 for (int i = 1; i < grid[0].Length; i++)
-                    if (!cache.Contains((i, true)) && grid.IsMirrorWithSmudge(GetColumn, i - 1, true)) {count += (uint)i; Console.WriteLine($"{index}: Mirror at column {i}");}
+                    if (cache[index] != (i, true) && grid.IsMirrorWithSmudge(GetColumn, i - 1, true)) {count += (uint)i; }
                 
                 for (int i = 1; i < grid.Length; i++)
-                    if (!cache.Contains((i, false)) && grid.IsMirrorWithSmudge(GetRow, i - 1)) {count += 100 * (uint)i; Console.WriteLine($"{index}: Mirror at row {i}");}
+                    if (cache[index] != (i, false) && grid.IsMirrorWithSmudge(GetRow, i - 1)) {count += 100 * (uint)i; }
 
                 index++;
             }
@@ -60,6 +60,7 @@ namespace AdventOfCode2023.Days
         private static string GetRow(this string[] grid, int index) => grid[index];
 
         private delegate string Selector(string[] grid, int index);
+
         private static bool IsMirror(this string[] grid, Selector selector, int index, bool isCol = false, int gap = 0)
         {
             if (index - gap < 0 || index + gap + 1 >= (isCol ? grid[0].Length : grid.Length)) return true;
@@ -77,9 +78,6 @@ namespace AdventOfCode2023.Days
                 return grid.IsMirrorWithSmudge(selector, index, isCol, gap + 1, smudgeFixed);
             if (!smudgeFixed && IsOneDifferent(s1, s2))
             {
-                Console.WriteLine($"One different {(isCol ? "column" : "row")} at index {index} (gap {gap}):");
-                Console.WriteLine(s1);
-                Console.WriteLine(s2);
                 return grid.IsMirrorWithSmudge(selector, index, isCol, gap + 1, true);
             }
             return false;
