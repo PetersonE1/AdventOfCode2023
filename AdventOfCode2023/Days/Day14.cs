@@ -11,30 +11,116 @@ namespace AdventOfCode2023.Days
             Console.WriteLine(Part1(input));
         }
 
-        // Plan: Treat each row as a bit array; 0 = empty, 1 = occupied
-        // Rollable spots are empty in above row: XOR (0 and 0, nothing to roll; 1 and 1, not rollable;
-        // 1 and 0, nothing to roll but adding is fine; 0 and 1, rollable)
-        // NAND with map of square rocks to prevent them from moving
-
-        // Row 0         : 0010010
-        // Row 1         : 0100110
-        // XOR [2]       : 0110100
-        // AND 2+1 [3]   : 0100100
-        // Square Map [4]: 0000100
-        // NAND 4+3 [5]  : 0100000
-        // ADD 5+0 [6]   : 0110010
-
         // Each iteration runs top-to-bottom, generating a checksum as it goes.
         // Loop iteration until checksum matches the previous one.
-        
+
         private static int Part1(string input)
         {
-            throw new NotImplementedException();
+            (uint[] maps, uint[] unmoveableMaps) = ToBits(input, out int length);
 
-            BitArray map = new();
-            BitArray unmovableMap = new();
+            uint[] cached_maps = new uint[maps.Length];
+            do
+            {
+                maps.CopyTo(cached_maps, 0);
+                IterationStep(maps, unmoveableMaps, length);
+            }
+            while (!maps.SequenceEqual(cached_maps));
 
-            return 0;
+            return CalculateNorthStrain(maps, unmoveableMaps, length);
+        }
+
+        private static (uint[] maps, uint[] unmoveableMaps) ToBits(string input, out int length)
+        {
+            string[] lines = input.Split("\r\n");
+            length = lines[0].Length;
+            uint[] maps = new uint[lines.Length];
+            uint[] unmoveableMaps = new uint[lines.Length];
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i];
+                uint map = 0;
+                uint unmoveableMap = 0;
+
+                foreach (char c in line)
+                {
+                    map <<= 1;
+                    unmoveableMap <<= 1;
+
+                    if (c != '.')
+                        map += 1;
+                    if (c == '#')
+                        unmoveableMap += 1;
+                }
+
+                maps[i] = map;
+                unmoveableMaps[i] = unmoveableMap;
+            }
+
+            return (maps, unmoveableMaps);
+        }
+
+        private static void IterationStep(uint[] maps, uint[] unmoveableMaps, int length)
+        {
+            for (int i = 0; i < maps.Length - 1; i++)
+            {
+                (uint a, uint b) = Roll(maps[i], maps[i+1], unmoveableMaps[i+1], length);
+                maps[i] = a;
+                maps[i+1] = b;
+            }
+        }
+
+        // Row 0         : 0010010 ..O..O.
+        // Row 1         : 0100110 .O..#O.
+        // AND 1+~0 [2]  : 0100100
+        // Square Map [3]: 0000100
+        // AND ~3+2 [4]  : 0100000
+        // OR 4+0 [5]    : 0110010 .OO..O.
+        // AND 1+~4 [6]  : 0000110 ....#O.
+        private static (uint top, uint bottom) Roll(uint top, uint bottom, uint squareMap, int length)
+        {
+            uint mask = uint.MaxValue >> (32 - length);
+            uint hasOpenSpace = bottom & ~top;
+            uint rollable = ~squareMap & hasOpenSpace;
+            uint newTop = rollable | top;
+            uint newBottom = bottom & ~rollable;
+
+            return (newTop & mask, newBottom & mask);
+        }
+
+        private static int CalculateNorthStrain(uint[] maps, uint[] unmoveableMaps, int length)
+        {
+            int strain = 0;
+            for (int i = 0; i < maps.Length; i++)
+            {
+                uint map = maps[i];
+                uint unmoveableMap = unmoveableMaps[i];
+                for (int j = 0; j < length; j++)
+                {
+                    uint a = (map >> j) & 1;
+                    uint b = (unmoveableMap >> j) & 1;
+                    if (a == 1 && b == 0)
+                        strain += maps.Length - i;
+                }
+            }
+            return strain;
+        }
+
+        private static void PrintMaps(uint[] maps, uint[] unmoveableMaps, int length)
+        {
+            for (int i = 0; i < maps.Length; i++)
+            {
+                uint map = maps[i];
+                uint unmoveableMap = unmoveableMaps[i];
+                StringBuilder sb = new();
+                for (int j = 0; j < length; j++)
+                {
+                    uint a = (map >> j) & 1;
+                    uint b = (unmoveableMap >> j) & 1;
+                    sb.Insert(0, a == 1 ? (b == 1 ? '#' : 'O') : '.');
+                }
+                Console.WriteLine(sb.ToString());
+            }
         }
     }
 }
