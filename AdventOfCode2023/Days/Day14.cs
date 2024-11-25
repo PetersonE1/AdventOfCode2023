@@ -16,9 +16,9 @@ namespace AdventOfCode2023.Days
 
         private static int Part1(string input)
         {
-            (uint[] maps, uint[] unmoveableMaps) = ToBits(input, out int length);
+            (UInt128[] maps, UInt128[] unmoveableMaps) = ToBits(input, out int length);
 
-            uint[] cached_maps = new uint[maps.Length];
+            UInt128[] cached_maps = new UInt128[maps.Length];
             do
             {
                 maps.CopyTo(cached_maps, 0);
@@ -29,18 +29,18 @@ namespace AdventOfCode2023.Days
             return CalculateNorthStrain(maps, unmoveableMaps, length);
         }
 
-        private static (uint[] maps, uint[] unmoveableMaps) ToBits(string input, out int length)
+        private static (UInt128[] maps, UInt128[] unmoveableMaps) ToBits(string input, out int length)
         {
             string[] lines = input.Split("\r\n");
             length = lines[0].Length;
-            uint[] maps = new uint[lines.Length];
-            uint[] unmoveableMaps = new uint[lines.Length];
+            UInt128[] maps = new UInt128[lines.Length];
+            UInt128[] unmoveableMaps = new UInt128[lines.Length];
 
             for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i];
-                uint map = 0;
-                uint unmoveableMap = 0;
+                UInt128 map = 0;
+                UInt128 unmoveableMap = 0;
 
                 foreach (char c in line)
                 {
@@ -60,11 +60,11 @@ namespace AdventOfCode2023.Days
             return (maps, unmoveableMaps);
         }
 
-        private static void IterationStep(uint[] maps, uint[] unmoveableMaps, int length)
+        private static void IterationStep(UInt128[] maps, UInt128[] unmoveableMaps, int length)
         {
             for (int i = 0; i < maps.Length - 1; i++)
             {
-                (uint a, uint b) = Roll(maps[i], maps[i+1], unmoveableMaps[i+1], length);
+                (UInt128 a, UInt128 b) = Roll(maps[i], maps[i+1], unmoveableMaps[i+1], length);
                 maps[i] = a;
                 maps[i+1] = b;
             }
@@ -77,28 +77,28 @@ namespace AdventOfCode2023.Days
         // AND ~3+2 [4]  : 0100000
         // OR 4+0 [5]    : 0110010 .OO..O.
         // AND 1+~4 [6]  : 0000110 ....#O.
-        private static (uint top, uint bottom) Roll(uint top, uint bottom, uint squareMap, int length)
+        private static (UInt128 top, UInt128 bottom) Roll(UInt128 top, UInt128 bottom, UInt128 squareMap, int length)
         {
-            uint mask = uint.MaxValue >> (32 - length);
-            uint hasOpenSpace = bottom & ~top;
-            uint rollable = ~squareMap & hasOpenSpace;
-            uint newTop = rollable | top;
-            uint newBottom = bottom & ~rollable;
+            UInt128 mask = UInt128.MaxValue >> (128 - length);
+            UInt128 hasOpenSpace = bottom & ~top;
+            UInt128 rollable = ~squareMap & hasOpenSpace;
+            UInt128 newTop = rollable | top;
+            UInt128 newBottom = bottom & ~rollable;
 
             return (newTop & mask, newBottom & mask);
         }
 
-        private static int CalculateNorthStrain(uint[] maps, uint[] unmoveableMaps, int length)
+        private static int CalculateNorthStrain(UInt128[] maps, UInt128[] unmoveableMaps, int length)
         {
             int strain = 0;
             for (int i = 0; i < maps.Length; i++)
             {
-                uint map = maps[i];
-                uint unmoveableMap = unmoveableMaps[i];
+                UInt128 map = maps[i];
+                UInt128 unmoveableMap = unmoveableMaps[i];
                 for (int j = 0; j < length; j++)
                 {
-                    uint a = (map >> j) & 1;
-                    uint b = (unmoveableMap >> j) & 1;
+                    UInt128 a = (map >> j) & 1;
+                    UInt128 b = (unmoveableMap >> j) & 1;
                     if (a == 1 && b == 0)
                         strain += maps.Length - i;
                 }
@@ -106,17 +106,17 @@ namespace AdventOfCode2023.Days
             return strain;
         }
 
-        private static void PrintMaps(uint[] maps, uint[] unmoveableMaps, int length)
+        private static void PrintMaps(UInt128[] maps, UInt128[] unmoveableMaps, int length)
         {
             for (int i = 0; i < maps.Length; i++)
             {
-                uint map = maps[i];
-                uint unmoveableMap = unmoveableMaps[i];
+                UInt128 map = maps[i];
+                UInt128 unmoveableMap = unmoveableMaps[i];
                 StringBuilder sb = new();
                 for (int j = 0; j < length; j++)
                 {
-                    uint a = (map >> j) & 1;
-                    uint b = (unmoveableMap >> j) & 1;
+                    UInt128 a = (map >> j) & 1;
+                    UInt128 b = (unmoveableMap >> j) & 1;
                     sb.Insert(0, a == 1 ? (b == 1 ? '#' : 'O') : '.');
                 }
                 Console.WriteLine(sb.ToString());
