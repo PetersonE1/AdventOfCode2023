@@ -22,7 +22,7 @@ namespace AdventOfCode2023.Days
             do
             {
                 maps.CopyTo(cached_maps, 0);
-                IterationStep(maps, unmoveableMaps, length);
+                IterationStepUp(maps, unmoveableMaps, length);
             }
             while (!maps.SequenceEqual(cached_maps));
 
@@ -60,9 +60,29 @@ namespace AdventOfCode2023.Days
             return (maps, unmoveableMaps);
         }
 
-        private static void IterationStep(UInt128[] maps, UInt128[] unmoveableMaps, int length)
+        private static void IterationStepUp(UInt128[] maps, UInt128[] unmoveableMaps, int length)
         {
             for (int i = 0; i < maps.Length - 1; i++)
+            {
+                (UInt128 a, UInt128 b) = Roll(maps[i], maps[i+1], unmoveableMaps[i+1], length);
+                maps[i] = a;
+                maps[i+1] = b;
+            }
+        }
+
+        private static void IterationStepDown(UInt128[] maps, UInt128[] unmoveableMaps, int length)
+        {
+            for (int i = maps.Length - 1; i > 0; i--)
+            {
+                (UInt128 a, UInt128 b) = Roll(maps[i], maps[i-1], unmoveableMaps[i-1], length);
+                maps[i] = a;
+                maps[i-1] = b;
+            }
+        }
+
+        private static void IterationStepLeft(UInt128[] maps, UInt128[] unmoveableMaps, int length)
+        {
+            for (int i = 0; i < length - 1; i++)
             {
                 (UInt128 a, UInt128 b) = Roll(maps[i], maps[i+1], unmoveableMaps[i+1], length);
                 maps[i] = a;
@@ -86,6 +106,39 @@ namespace AdventOfCode2023.Days
             UInt128 newBottom = bottom & ~rollable;
 
             return (newTop & mask, newBottom & mask);
+        }
+
+        // Row 0 - Roll      : 0110110 .OO.#O.
+        // Square Map [1]    : 0000100
+        // Indices 0-1 [2]   : 01
+        // 2[0] == 0         : YES (continue if no)
+        // 2[1] != 0         : YES (continue if no)
+        // Is 2[1] a square? : NO (continue if yes)
+        // Roll              : 10
+        // Indices 1-2 [3]   : 01 (proceed as before)
+        // Indices 3-4 [4]   : 01
+        // 4[0] == 0         : YES
+        // 4[1] != 0         : YES
+        // Is 4[1] a square? : YES (continue)
+        // Indices 4-5 [5]   : 11
+        // 5[0] != 0         : NO (continue)
+        // Indices 5-6 [6]   : 10 (we will continue again)
+        // Indices 6-7 [7]   : 00
+        // 7[0] == 0         : YES
+        // 7[1] != 0         : NO (continue)
+
+        // 001010 -> 010010 => +0010000
+        private static void RollHorizontal(UInt128[] maps, UInt128[] squareMaps, bool rollRight, int length)
+        {
+            for (int i = 0; i < maps.Length; i++)
+            {
+                UInt128 map = maps[i];
+                UInt128 squareMap = squareMaps[i];
+                for (int j = 0; j < length - 1; j++)
+                {
+                    throw new NotImplementedException();
+                }
+            }
         }
 
         private static int CalculateNorthStrain(UInt128[] maps, UInt128[] unmoveableMaps, int length)
